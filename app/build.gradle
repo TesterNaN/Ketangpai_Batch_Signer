@@ -1,0 +1,59 @@
+plugins {
+    alias(libs.plugins.android.application)
+}
+
+android {
+    namespace 'com.ketangpai.qrcodescanner'
+    compileSdk {
+        version = release(34)
+    }
+
+    defaultConfig {
+        applicationId "com.ketangpai.qrcodescanner"
+        minSdk 33
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
+    }
+}
+
+dependencies {
+    // 使用版本目录中的基础库
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.constraintlayout
+
+    // 使用版本目录中的扫码相关库（已精简）
+    implementation libs.wechat.qrcode.scanning // 此库已包含扫码界面和相机控制
+    implementation libs.wechat.qrcode         // 识别核心
+    implementation libs.opencv                // OpenCV Java绑定
+    implementation libs.opencv.armv64         // 主要设备架构的本地库
+    // 注意：camera-scan 库通常已由 wechat-qrcode-scanning 包含，除非单独使用，否则可移除
+    // implementation libs.camera.scan
+
+    // 使用版本目录中的网络、工具库
+    implementation libs.okhttp
+    implementation libs.logging.interceptor
+    implementation libs.gson
+    implementation libs.glide
+    implementation libs.permissionx
+    implementation libs.security.crypto
+
+    // 使用版本目录中的测试库
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
+}

@@ -1,0 +1,56 @@
+[versions]
+# 你原有的AGP和基础库版本
+agp = "8.13.1"
+appcompat = "1.6.1"
+
+# ---------- 新增：以下是需要添加的版本 ----------
+# UI库
+material = "1.11.0"
+constraintlayout = "2.1.4"
+
+# 扫码核心库版本
+wechat-qrcode = "2.4.0"
+
+# 网络与工具库
+okhttp = "5.3.2"
+gson = "2.13.2"
+glide = "5.0.5"
+permissionx = "1.8.1"
+security-crypto = "1.1.0-alpha06"
+
+# 测试库
+junit = "4.13.2"
+androidx-junit = "1.1.5"
+espresso-core = "3.5.1"
+
+[libraries]
+# 你原有的库定义
+appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
+
+# ---------- 新增：以下是需要添加的库定义 ----------
+# UI库
+material = { group = "com.google.android.material", name = "material", version.ref = "material" }
+constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
+
+# 扫码核心库 (精简后)
+wechat-qrcode-scanning = { group = "com.github.jenly1314.WeChatQRCode", name = "wechat-qrcode-scanning", version.ref = "wechat-qrcode" }
+wechat-qrcode = { group = "com.github.jenly1314.WeChatQRCode", name = "wechat-qrcode", version.ref = "wechat-qrcode" }
+opencv = { group = "com.github.jenly1314.WeChatQRCode", name = "opencv", version.ref = "wechat-qrcode" }
+opencv-armv64 = { group = "com.github.jenly1314.WeChatQRCode", name = "opencv-armv64", version.ref = "wechat-qrcode" }
+
+# 网络与工具库
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+logging-interceptor = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
+glide = { group = "com.github.bumptech.glide", name = "glide", version.ref = "glide" }
+permissionx = { group = "com.guolindev.permissionx", name = "permissionx", version.ref = "permissionx" }
+security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "security-crypto" }
+
+# 测试库
+junit = { group = "junit", name = "junit", version.ref = "junit" }
+ext-junit = { group = "androidx.test.ext", name = "junit", version.ref = "androidx-junit" }
+espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espresso-core" }
+
+[plugins]
+# 你原有的插件定义
+android-application = { id = "com.android.application", version.ref = "agp" }
