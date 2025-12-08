@@ -16,7 +16,7 @@ public class AccountManager {
     private static final String PREFS_NAME = "encrypted_accounts";
     private static final String KEY_ACCOUNT_LIST = "account_list";
     private SharedPreferences encryptedPrefs;
-    private Gson gson = new Gson();
+    private final Gson gson = new Gson();
 
     public AccountManager(Context context) {
         try {

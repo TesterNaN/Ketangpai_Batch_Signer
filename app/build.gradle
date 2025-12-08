@@ -10,7 +10,7 @@ android {
 
     defaultConfig {
         applicationId "com.ketangpai.qrcodescanner"
-        minSdk 33
+        minSdk 31
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -41,8 +41,6 @@ dependencies {
     implementation libs.wechat.qrcode         // 识别核心
     implementation libs.opencv                // OpenCV Java绑定
     implementation libs.opencv.armv64         // 主要设备架构的本地库
-    // 注意：camera-scan 库通常已由 wechat-qrcode-scanning 包含，除非单独使用，否则可移除
-    // implementation libs.camera.scan
 
     // 使用版本目录中的网络、工具库
     implementation libs.okhttp

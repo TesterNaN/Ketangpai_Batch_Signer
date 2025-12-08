@@ -22,7 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private Button btnAddAccount;
     private TextView tvResult;
     private AccountAdapter adapter;
-    private List<Account> accountList = new ArrayList<>();
+    private final List<Account> accountList = new ArrayList<>();
     private AccountManager accountManager;
     private String scannedUrl = "";
     private static final int REQUEST_SCAN = 1001;
@@ -58,34 +58,30 @@ public class MainActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void setupListeners() {
-        btnScan.setOnClickListener(v -> {
-            PermissionX.init(this)
-                    .permissions(android.Manifest.permission.CAMERA)
-                    .request((allGranted, grantedList, deniedList) -> {
-                        if (allGranted) {
-                            startScanActivity();
-                        } else {
-                            tvResult.setText("需要相机权限才能扫描二维码");
-                        }
-                    });
-        });
+        btnScan.setOnClickListener(v -> PermissionX.init(this)
+                .permissions(android.Manifest.permission.CAMERA)
+                .request((allGranted, grantedList, deniedList) -> {
+                    if (allGranted) {
+                        startScanActivity();
+                    } else {
+                        tvResult.setText("需要相机权限才能扫描二维码");
+                    }
+                }));
 
         btnAddAccount.setOnClickListener(v -> showAddAccountDialog());
 
-        adapter.setOnDeleteClickListener((account, position) -> {
-            new AlertDialog.Builder(this)
-                    .setTitle("确认删除")
-                    .setMessage("确定要删除账号 " + account.getUsername() + " 吗？")
-                    .setPositiveButton("删除", (dialog, which) -> {
-                        if (accountManager.deleteAccount(account)) {
-                            accountList.remove(position);
-                            adapter.notifyItemRemoved(position);
-                            tvResult.setText("账号已删除: " + account.getUsername());
-                        }
-                    })
-                    .setNegativeButton("取消", null)
-                    .show();
-        });
+        adapter.setOnDeleteClickListener((account, position) -> new AlertDialog.Builder(this)
+                .setTitle("确认删除")
+                .setMessage("确定要删除账号 " + account.getUsername() + " 吗？")
+                .setPositiveButton("删除", (dialog, which) -> {
+                    if (accountManager.deleteAccount(account)) {
+                        accountList.remove(position);
+                        adapter.notifyItemRemoved(position);
+                        tvResult.setText("账号已删除: " + account.getUsername());
+                    }
+                })
+                .setNegativeButton("取消", null)
+                .show());
     }
 
     private void startScanActivity() {
