@@ -21,7 +21,6 @@ public class NetworkManager {
     private static final String SIGN_URL = "https://openapiv5.ketangpai.com/AttenceApi/AttenceResult";
 
     private final OkHttpClient client;
-    private final Gson gson = new Gson();
 
     public NetworkManager() {
         client = new OkHttpClient.Builder()
@@ -73,7 +72,7 @@ public class NetworkManager {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
+            if (response.isSuccessful()) {
                 String responseBody = response.body().string();
                 JSONObject json = new JSONObject(responseBody);
                 if (json.optInt("code", 0) == 10000) {
@@ -117,7 +116,7 @@ public class NetworkManager {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
+            if (response.isSuccessful()) {
                 String responseBody = response.body().string();
                 JSONObject json = new JSONObject(responseBody);
                 if (json.optInt("code", 0) == 10000) {
@@ -153,7 +152,7 @@ public class NetworkManager {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
+            if (response.isSuccessful()) {
                 String responseBody = response.body().string();
                 JSONObject json = new JSONObject(responseBody);
                 if (json.optInt("code", 0) == 10000) {
@@ -188,7 +187,7 @@ public class NetworkManager {
                 .build();
 
         try (Response response = client.newCall(request).execute()) {
-            if (response.isSuccessful() && response.body() != null) {
+            if (response.isSuccessful()) {
                 String responseBody = response.body().string();
                 JSONObject json = new JSONObject(responseBody);
                 if (json.optInt("code", 0) == 10000) {
@@ -244,7 +243,4 @@ public class NetworkManager {
         return result.toString();
     }
 
-    public Gson getGson() {
-        return gson;
-    }
 }
