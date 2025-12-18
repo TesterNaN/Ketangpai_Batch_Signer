@@ -53,8 +53,8 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.ViewHold
         holder.tvUsername.setText(account.getUsername());
 
         // 获取登录状态
-        KetangpaiSessionManager.KtpSession session =
-                KetangpaiSessionManager.getInstance().getSession(account.getUsername());
+        LoginSessionManager.KtpSession session =
+                LoginSessionManager.getInstance().getSession(account.getUsername());
 
         // 构建合并状态文本
         String loginStatus;

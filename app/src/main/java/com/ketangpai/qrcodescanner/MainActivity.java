@@ -29,7 +29,7 @@ public class MainActivity extends AppCompatActivity {
     private AccountAdapter adapter;
     private final List<Account> accountList = new ArrayList<>();
     private AccountManager accountManager;
-    private KetangpaiSessionManager sessionManager;
+    private LoginSessionManager sessionManager;
     private String scannedUrl = "";
 
     // 登录任务管理
@@ -54,7 +54,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         accountManager = new AccountManager(this);
-        sessionManager = KetangpaiSessionManager.getInstance();
+        sessionManager = LoginSessionManager.getInstance();
 
         initViews();
         loadAccounts();
@@ -203,7 +203,7 @@ public class MainActivity extends AppCompatActivity {
 
         for (Account account : accountList) {
             // 检查是否已有有效会话
-            KetangpaiSessionManager.KtpSession existingSession = sessionManager.getSession(account.getUsername());
+            LoginSessionManager.KtpSession existingSession = sessionManager.getSession(account.getUsername());
 
             if (existingSession != null && existingSession.isTokenValid()) {
                 // 已有有效会话，跳过
@@ -273,7 +273,7 @@ public class MainActivity extends AppCompatActivity {
                 @SuppressLint("DefaultLocale") String resultText = String.format("预登录完成！%d个账号已准备就绪", readyCount);
                 tvResult.setText(resultText);
 
-                Toast.makeText(this, "账号准备就绪，可以开始扫码签到", Toast.LENGTH_SHORT).show();
+                // Toast.makeText(this, "账号准备就绪，可以开始扫码签到", Toast.LENGTH_SHORT).show();
             } else if (successCount == 0) {
                 // 全部登录失败，但仍允许使用普通模式
                 updateScanButtonState(true, "开始扫码签到（普通模式）", "#2196F3");
@@ -384,7 +384,7 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("NotifyDataSetChanged")
     private void loginNewAccountImmediately(Account account) {
         // 检查是否已有有效会话
-        KetangpaiSessionManager.KtpSession existingSession = sessionManager.getSession(account.getUsername());
+        LoginSessionManager.KtpSession existingSession = sessionManager.getSession(account.getUsername());
         if (existingSession != null && existingSession.isTokenValid()) {
             Toast.makeText(this, "账号已登录", Toast.LENGTH_SHORT).show();
             updateButtonState();

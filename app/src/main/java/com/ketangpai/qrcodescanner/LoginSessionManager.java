@@ -4,9 +4,9 @@ import android.util.Log;
 import java.util.HashMap;
 import java.util.Map;
 
-public class KetangpaiSessionManager {
+public class LoginSessionManager {
     private static final String TAG = "KTP_Session";
-    private static KetangpaiSessionManager instance;
+    private static LoginSessionManager instance;
 
     public static class KtpSession {
         private final String username;
@@ -43,14 +43,14 @@ public class KetangpaiSessionManager {
 
     private final Map<String, KtpSession> sessionMap = new HashMap<>();
 
-    public static synchronized KetangpaiSessionManager getInstance() {
+    public static synchronized LoginSessionManager getInstance() {
         if (instance == null) {
-            instance = new KetangpaiSessionManager();
+            instance = new LoginSessionManager();
         }
         return instance;
     }
 
-    private KetangpaiSessionManager() {}
+    private LoginSessionManager() {}
 
     public void addSession(String username, String token) {
         KtpSession session = new KtpSession(username, token);
