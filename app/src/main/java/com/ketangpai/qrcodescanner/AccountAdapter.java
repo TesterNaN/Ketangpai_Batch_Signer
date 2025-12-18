@@ -1,7 +1,6 @@
 package com.ketangpai.qrcodescanner;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,7 +32,7 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.ViewHold
         this.refreshListener = listener;
     }
 
-    public AccountAdapter(Context context, List<Account> accountList) {
+    public AccountAdapter(List<Account> accountList) {
         this.accountList = accountList;
     }
 

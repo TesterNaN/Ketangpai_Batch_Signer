@@ -243,4 +243,8 @@ public class NetworkManager {
         result.append(String.format("\n快速签到完成: %d/%d 个账号", successCount, tokenMap.size()));
         return result.toString();
     }
+
+    public Gson getGson() {
+        return gson;
+    }
 }

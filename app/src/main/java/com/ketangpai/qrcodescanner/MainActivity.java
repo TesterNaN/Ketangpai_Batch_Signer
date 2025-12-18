@@ -75,7 +75,7 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new AccountAdapter(this, accountList);
+        adapter = new AccountAdapter(accountList);
         recyclerView.setAdapter(adapter);
     }
 
@@ -144,9 +144,7 @@ public class MainActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setTitle("重新登录")
                     .setMessage("确定要重新登录账号 " + account.getUsername() + " 吗？")
-                    .setPositiveButton("确定", (dialog, which) -> {
-                        refreshSingleAccount(account, position);
-                    })
+                    .setPositiveButton("确定", (dialog, which) -> refreshSingleAccount(account, position))
                     .setNegativeButton("取消", null)
                     .show();
         });
@@ -248,7 +246,7 @@ public class MainActivity extends AppCompatActivity {
 
                         // 检查是否所有任务完成
                         if (ongoingLoginTasks.get() == 0 && completedCount[0] >= needLoginCount) {
-                            onAllLoginTasksComplete(successCount[0], needLoginCount);
+                            onAllLoginTasksComplete(successCount[0]);
                         }
                     });
                 }
@@ -262,7 +260,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * 所有登录任务完成后的处理
      */
-    private void onAllLoginTasksComplete(int successCount, int totalCount) {
+    private void onAllLoginTasksComplete(int successCount) {
         runOnUiThread(() -> {
             Map<String, String> validTokens = sessionManager.getAllValidTokens();
             int readyCount = validTokens.size();
@@ -302,9 +300,7 @@ public class MainActivity extends AppCompatActivity {
             new AlertDialog.Builder(this)
                     .setTitle("提示")
                     .setMessage("当前没有已登录的账号，签到可能需要更长时间。是否继续？")
-                    .setPositiveButton("继续", (dialog, which) -> {
-                        executeSignProcess();
-                    })
+                    .setPositiveButton("继续", (dialog, which) -> executeSignProcess())
                     .setNegativeButton("取消", null)
                     .show();
         } else {
@@ -414,18 +410,14 @@ public class MainActivity extends AppCompatActivity {
                         adapter.notifyDataSetChanged();
                     });
                 } else {
-                    runOnUiThread(() -> {
-                        Toast.makeText(this,
-                                account.getUsername() + " 登录失败，将使用普通签到",
-                                Toast.LENGTH_SHORT).show();
-                    });
+                    runOnUiThread(() -> Toast.makeText(this,
+                            account.getUsername() + " 登录失败，将使用普通签到",
+                            Toast.LENGTH_SHORT).show());
                 }
             } catch (Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this,
-                            "登录异常: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
-                });
+                runOnUiThread(() -> Toast.makeText(this,
+                        "登录异常: " + e.getMessage(),
+                        Toast.LENGTH_SHORT).show());
             } finally {
                 // 任务完成
                 ongoingLoginTasks.decrementAndGet();
@@ -457,18 +449,14 @@ public class MainActivity extends AppCompatActivity {
                         adapter.updateAccountStatus(position, account);
                     });
                 } else {
-                    runOnUiThread(() -> {
-                        Toast.makeText(this,
-                                account.getUsername() + " 重新登录失败",
-                                Toast.LENGTH_SHORT).show();
-                    });
+                    runOnUiThread(() -> Toast.makeText(this,
+                            account.getUsername() + " 重新登录失败",
+                            Toast.LENGTH_SHORT).show());
                 }
             } catch (Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this,
-                            "重新登录异常: " + e.getMessage(),
-                            Toast.LENGTH_SHORT).show();
-                });
+                runOnUiThread(() -> Toast.makeText(this,
+                        "重新登录异常: " + e.getMessage(),
+                        Toast.LENGTH_SHORT).show());
             } finally {
                 // 任务完成
                 ongoingLoginTasks.decrementAndGet();
@@ -505,28 +493,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
-    }
-
-    /**
-     * 手动刷新所有账号登录状态
-     */
-    public void refreshAllLogins() {
-        if (ongoingLoginTasks.get() > 0) {
-            Toast.makeText(this, "已有登录任务进行中，请稍候", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        new AlertDialog.Builder(this)
-                .setTitle("重新登录所有账号")
-                .setMessage("确定要重新登录所有账号吗？这可能需要一些时间。")
-                .setPositiveButton("确定", (dialog, which) -> {
-                    // 清空现有会话
-                    sessionManager.clearAllSessions();
-                    // 重新预登录
-                    performAutoLogin();
-                })
-                .setNegativeButton("取消", null)
-                .show();
     }
 
     @Override

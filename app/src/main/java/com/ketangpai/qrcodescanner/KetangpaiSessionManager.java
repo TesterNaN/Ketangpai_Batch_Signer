@@ -37,7 +37,6 @@ public class KetangpaiSessionManager {
             return valid;
         }
 
-        public String getUsername() { return username; }
         public String getToken() { return token; }
         public long getLoginTime() { return loginTime; }
     }
@@ -63,14 +62,6 @@ public class KetangpaiSessionManager {
         return sessionMap.get(username);
     }
 
-    public String getValidToken(String username) {
-        KtpSession session = sessionMap.get(username);
-        if (session != null && session.isTokenValid()) {
-            return session.getToken();
-        }
-        return null;
-    }
-
     public void removeSession(String username) {
         sessionMap.remove(username);
         Log.i(TAG, "已移除会话: " + username);
@@ -84,11 +75,6 @@ public class KetangpaiSessionManager {
             }
         }
         return validTokens;
-    }
-
-    public void clearAllSessions() {
-        sessionMap.clear();
-        Log.i(TAG, "已清空所有会话");
     }
 
 }
