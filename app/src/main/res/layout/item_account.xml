@@ -7,30 +7,43 @@
     android:background="?android:attr/selectableItemBackground"
     android:layout_marginBottom="8dp">
 
+    <!-- 左侧：账号信息和状态区域 -->
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:orientation="vertical">
+        
+        <!-- 用户名 -->
         <TextView
             android:id="@+id/tv_username"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="账号"
-            android:textSize="16sp"/>
+            android:text="账号: user@example.com"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"/>
+        
+        <!-- 合并状态显示：登录状态 + 签到状态 -->
         <TextView
-            android:id="@+id/tv_status"
+            android:id="@+id/tv_combined_status"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="状态"
-            android:textSize="14sp"
+            android:text="登录: 未登录 | 签到: 未开始"
+            android:textSize="13sp"
             android:layout_marginTop="4dp"/>
     </LinearLayout>
 
+    <!-- 右侧：删除按钮 -->
     <Button
         android:id="@+id/btn_delete"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="删除"/>
-
+        android:text="删除"
+        android:paddingHorizontal="12dp"
+        android:backgroundTint="#FF5252"
+        android:textColor="#FFFFFF"
+        android:layout_gravity="center_vertical"/>
+    
 </LinearLayout>
