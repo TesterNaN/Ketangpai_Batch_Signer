@@ -3,8 +3,6 @@ package com.ketangpai.qrcodescanner;
 import android.annotation.SuppressLint;
 import android.util.Log;
 
-import com.google.gson.Gson;
-
 import okhttp3.*;
 
 import org.json.JSONException;
