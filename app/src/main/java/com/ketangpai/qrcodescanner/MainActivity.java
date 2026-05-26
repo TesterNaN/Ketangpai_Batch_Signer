@@ -11,18 +11,24 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
 import com.permissionx.guolindev.PermissionX;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class MainActivity extends AppCompatActivity {
+    private static final String TAG = "MainActivity";
     private Button btnScan;
     private Button btnAddAccount;
     private TextView tvResult;
@@ -32,11 +38,10 @@ public class MainActivity extends AppCompatActivity {
     private LoginSessionManager sessionManager;
     private String scannedUrl = "";
 
-    // 登录任务管理
     private final AtomicInteger ongoingLoginTasks = new AtomicInteger(0);
     private boolean isSignInProgress = false;
+    private final AtomicBoolean preLoginCompleted = new AtomicBoolean(false);
 
-    // 替换 startActivityForResult
     private final ActivityResultLauncher<Intent> scanLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
@@ -59,12 +64,9 @@ public class MainActivity extends AppCompatActivity {
         initViews();
         loadAccounts();
         setupListeners();
-        setupRefreshListener();
+        setupItemActionListeners(); // 设置独立监听器
 
-        // 初始时禁用签到按钮
         updateScanButtonState(false, "正在准备账号...", "#9E9E9E");
-
-        // 启动时预登录
         performAutoLogin();
     }
 
@@ -75,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
         RecyclerView recyclerView = findViewById(R.id.recycler_view);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        adapter = new AccountAdapter(accountList);
+        adapter = new AccountAdapter(this, accountList);
         recyclerView.setAdapter(adapter);
     }
 
@@ -93,12 +95,10 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "账号登录中，请稍候...", Toast.LENGTH_SHORT).show();
                 return;
             }
-
             if (isSignInProgress) {
                 Toast.makeText(this, "签到进行中，请等待完成...", Toast.LENGTH_SHORT).show();
                 return;
             }
-
             PermissionX.init(this)
                     .permissions(android.Manifest.permission.CAMERA)
                     .request((allGranted, grantedList, deniedList) -> {
@@ -132,22 +132,56 @@ public class MainActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("取消", null)
                 .show());
+
+        // 签到开关监听
+        adapter.setOnSignToggleListener((account, isChecked, position) -> {
+            account.setSignEnabled(isChecked);
+            // 异步保存，避免阻塞 UI
+            new Thread(() -> accountManager.saveAccount(account)).start();
+            updateButtonState(); // 立即更新按钮状态
+        });
     }
 
-    private void setupRefreshListener() {
-        adapter.setOnRefreshClickListener((account, position) -> {
-            if (ongoingLoginTasks.get() > 0) {
-                Toast.makeText(this, "已有登录任务进行中，请稍候", Toast.LENGTH_SHORT).show();
-                return;
-            }
+    // 设置长按菜单的三个监听器
+    private void setupItemActionListeners() {
+        // 方法引用（参数完全匹配）
+        adapter.setOnEditRemarkClickListener(this::showEditRemarkDialog);
 
-            new AlertDialog.Builder(this)
-                    .setTitle("重新登录")
-                    .setMessage("确定要重新登录账号 " + account.getUsername() + " 吗？")
-                    .setPositiveButton("确定", (dialog, which) -> refreshSingleAccount(account, position))
-                    .setNegativeButton("取消", null)
-                    .show();
+        // 表达式 lambda（忽略 position 参数）
+        adapter.setOnViewDetailsClickListener((account, position) -> showAccountDetailsDialog(account));
+
+        // 方法引用（参数完全匹配）
+        adapter.setOnRefreshClickListener(this::refreshSingleAccount);
+    }
+
+    private void showEditRemarkDialog(Account account, int position) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("编辑备注");
+
+        final EditText input = new EditText(this);
+        input.setText(account.getRemark());
+        input.setHint("输入备注（留空则显示用户名）");
+        builder.setView(input);
+
+        builder.setPositiveButton("保存", (dialog, which) -> {
+            String remark = input.getText().toString().trim();
+            account.setRemark(remark);
+            accountManager.saveAccount(account);
+            adapter.updateAccountStatus(position, account);
         });
+        builder.setNegativeButton("取消", null);
+        builder.show();
+    }
+
+    private void showAccountDetailsDialog(Account account) {
+        String message = "用户名/手机号: " + account.getUsername() + "\n"
+                + (account.getRemark() != null && !account.getRemark().isEmpty()
+                ? "备注: " + account.getRemark() : "备注: 无");
+        new AlertDialog.Builder(this)
+                .setTitle("账号详情")
+                .setMessage(message)
+                .setPositiveButton("确定", null)
+                .show();
     }
 
     private void startScanActivity() {
@@ -159,9 +193,6 @@ public class MainActivity extends AppCompatActivity {
         scanLauncher.launch(intent);
     }
 
-    /**
-     * 更新扫描按钮状态
-     */
     private void updateScanButtonState(boolean enabled, String text, String colorHex) {
         runOnUiThread(() -> {
             btnScan.setEnabled(enabled);
@@ -171,9 +202,6 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    /**
-     * 自动预登录所有账号
-     */
     @SuppressLint("NotifyDataSetChanged")
     private void performAutoLogin() {
         if (accountList.isEmpty()) {
@@ -182,121 +210,106 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // 重置任务计数
         ongoingLoginTasks.set(0);
+        preLoginCompleted.set(false);
 
-        // 统计需要登录的账号数
-        int needLoginCount = (int) accountList.stream().map(account -> sessionManager.getSession(account.getUsername())).filter(session -> session == null || !session.isTokenValid()).count();
+        int needLoginCount = 0;
+        for (Account account : accountList) {
+            LoginSessionManager.KtpSession session = sessionManager.getSession(account.getUsername());
+            if (session == null || !session.isTokenValid()) {
+                needLoginCount++;
+            }
+        }
 
         if (needLoginCount == 0) {
-            // 所有账号都已登录
             updateButtonState();
             return;
         }
 
-        // 禁用按钮并显示进度
-        updateScanButtonState(false, "预登录中 (0/" + needLoginCount + ")", "#9E9E9E");
+        final int finalNeedLoginCount = needLoginCount;
+        updateScanButtonState(false, "预登录中 (0/" + finalNeedLoginCount + ")", "#9E9E9E");
         tvResult.setText("正在预登录账号，请稍候...");
 
         final int[] completedCount = {0};
         final int[] successCount = {0};
 
         for (Account account : accountList) {
-            // 检查是否已有有效会话
             LoginSessionManager.KtpSession existingSession = sessionManager.getSession(account.getUsername());
-
             if (existingSession != null && existingSession.isTokenValid()) {
-                // 已有有效会话，跳过
                 continue;
             }
 
-            // 启动登录任务
             ongoingLoginTasks.incrementAndGet();
 
             new Thread(() -> {
                 try {
                     NetworkManager networkManager = new NetworkManager();
                     String token = networkManager.loginAndGetToken(account);
-
-                    if (token != null) {
+                    if (token != null && !token.isEmpty()) {
                         sessionManager.addSession(account.getUsername(), token);
                         successCount[0]++;
-                        Log.i("AutoLogin", account.getUsername() + " 预登录成功");
+                        Log.i(TAG, account.getUsername() + " 预登录成功");
                     } else {
-                        Log.w("AutoLogin", account.getUsername() + " 预登录失败");
+                        Log.w(TAG, account.getUsername() + " 预登录失败");
                     }
                 } catch (Exception e) {
-                    Log.e("AutoLogin", account.getUsername() + " 登录异常", e);
+                    Log.e(TAG, account.getUsername() + " 登录异常", e);
                 } finally {
                     completedCount[0]++;
                     ongoingLoginTasks.decrementAndGet();
 
                     runOnUiThread(() -> {
-                        // 更新进度显示
-                        String progressText = "预登录中 (" + completedCount[0] + "/" + needLoginCount + ")";
-                        updateScanButtonState(false, progressText, "#9E9E9E");
+                        if (ongoingLoginTasks.get() == 0 && completedCount[0] >= finalNeedLoginCount) {
+                            if (preLoginCompleted.compareAndSet(false, true)) {
+                                onAllLoginTasksComplete(successCount[0]);
+                            }
+                        } else {
+                            String progressText = "预登录中 (" + completedCount[0] + "/" + finalNeedLoginCount + ")";
+                            updateScanButtonState(false, progressText, "#9E9E9E");
 
-                        // 更新结果框
-                        @SuppressLint("DefaultLocale") String infoText = String.format("正在准备账号...\n已完成: %d/%d\n成功: %d个",
-                                completedCount[0], needLoginCount, successCount[0]);
-                        tvResult.setText(infoText);
-
-                        // 刷新列表
-                        adapter.notifyDataSetChanged();
-
-                        // 检查是否所有任务完成
-                        if (ongoingLoginTasks.get() == 0 && completedCount[0] >= needLoginCount) {
-                            onAllLoginTasksComplete(successCount[0]);
+                            @SuppressLint("DefaultLocale") String infoText = String.format("正在准备账号...\n已完成: %d/%d\n成功: %d个",
+                                    completedCount[0], finalNeedLoginCount, successCount[0]);
+                            tvResult.setText(infoText);
                         }
+                        adapter.notifyDataSetChanged();
                     });
                 }
             }).start();
 
-            // 延迟一下，避免请求过快
             try { Thread.sleep(300); } catch (InterruptedException e) { break; }
         }
     }
 
-    /**
-     * 所有登录任务完成后的处理
-     */
     private void onAllLoginTasksComplete(int successCount) {
         runOnUiThread(() -> {
             Map<String, String> validTokens = sessionManager.getAllValidTokens();
-            int readyCount = validTokens.size();
+            int readyCount = 0;
+            for (Account account : accountList) {
+                if (account.isSignEnabled() && validTokens.containsKey(account.getUsername())) {
+                    readyCount++;
+                }
+            }
 
             if (readyCount > 0) {
-                // 有已登录的账号
-                @SuppressLint("DefaultLocale") String buttonText = String.format("开始扫码签到 (%d/%d就绪)", readyCount, accountList.size());
-                updateScanButtonState(true, buttonText, "#4CAF50");
-
                 @SuppressLint("DefaultLocale") String resultText = String.format("预登录完成！%d个账号已准备就绪", readyCount);
                 tvResult.setText(resultText);
-
-                // Toast.makeText(this, "账号准备就绪，可以开始扫码签到", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "账号准备就绪，可以开始扫码签到", Toast.LENGTH_SHORT).show();
             } else if (successCount == 0) {
-                // 全部登录失败，但仍允许使用普通模式
-                updateScanButtonState(true, "开始扫码签到（普通模式）", "#2196F3");
-                tvResult.setText("预登录失败，将使用普通签到模式");
-                Toast.makeText(this, "登录失败，签到可能需要更长时间", Toast.LENGTH_LONG).show();
+                tvResult.setText("预登录失败，所有账号登录未成功，将使用普通签到模式");
+                Toast.makeText(this, "所有账号登录失败，请检查账号密码或网络", Toast.LENGTH_LONG).show();
             } else {
-                // 有成功但令牌可能已过期
-                updateScanButtonState(true, "开始扫码签到", "#4CAF50");
-                tvResult.setText("账号已尝试登录");
+                tvResult.setText("部分账号登录成功，但均未开启签到或令牌已过期");
             }
+
+            updateButtonState();
         });
     }
 
-    /**
-     * 开始签到流程
-     */
     @SuppressLint("NotifyDataSetChanged")
     private void startSignProcess() {
-        // 检查登录状态
         Map<String, String> validTokens = sessionManager.getAllValidTokens();
 
         if (validTokens.isEmpty()) {
-            // 没有有效令牌，确认是否继续
             new AlertDialog.Builder(this)
                     .setTitle("提示")
                     .setMessage("当前没有已登录的账号，签到可能需要更长时间。是否继续？")
@@ -308,9 +321,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    /**
-     * 实际执行签到流程
-     */
     @SuppressLint({"NotifyDataSetChanged", "SetTextI18n"})
     private void executeSignProcess() {
         isSignInProgress = true;
@@ -321,20 +331,37 @@ public class MainActivity extends AppCompatActivity {
                 NetworkManager networkManager = new NetworkManager();
                 String result;
 
-                Map<String, String> validTokens = sessionManager.getAllValidTokens();
+                Map<String, String> allValidTokens = sessionManager.getAllValidTokens();
 
-                if (!validTokens.isEmpty()) {
-                    result = networkManager.quickSignReadyAccounts(scannedUrl, accountList, validTokens);
+                List<Account> signAccounts = new ArrayList<>();
+                for (Account account : accountList) {
+                    if (account.isSignEnabled()) {
+                        signAccounts.add(account);
+                    }
+                }
+
+                if (signAccounts.isEmpty()) {
+                    result = "没有选择任何要签到的账号";
                 } else {
-                    result = networkManager.processAllAccounts(scannedUrl, accountList);
+                    Map<String, String> signTokens = new HashMap<>();
+                    for (Account account : signAccounts) {
+                        String token = allValidTokens.get(account.getUsername());
+                        if (token != null) {
+                            signTokens.put(account.getUsername(), token);
+                        }
+                    }
+
+                    if (!signTokens.isEmpty()) {
+                        result = networkManager.quickSignReadyAccounts(scannedUrl, signAccounts, signTokens);
+                    } else {
+                        result = networkManager.processAllAccounts(scannedUrl, signAccounts);
+                    }
                 }
 
                 final String finalResult = result;
                 runOnUiThread(() -> {
                     tvResult.setText(finalResult);
                     adapter.notifyDataSetChanged();
-
-                    // 签到完成后恢复按钮状态
                     isSignInProgress = false;
                     updateButtonState();
                 });
@@ -369,8 +396,6 @@ public class MainActivity extends AppCompatActivity {
             if (accountManager.saveAccount(newAccount)) {
                 loadAccounts();
                 tvResult.setText("账号已添加: " + username);
-
-                // 立即登录新账号（这会阻塞按钮）
                 loginNewAccountImmediately(newAccount);
             }
         });
@@ -378,12 +403,8 @@ public class MainActivity extends AppCompatActivity {
         builder.show();
     }
 
-    /**
-     * 立即登录新添加的账号（阻塞按钮直到完成）
-     */
     @SuppressLint("NotifyDataSetChanged")
     private void loginNewAccountImmediately(Account account) {
-        // 检查是否已有有效会话
         LoginSessionManager.KtpSession existingSession = sessionManager.getSession(account.getUsername());
         if (existingSession != null && existingSession.isTokenValid()) {
             Toast.makeText(this, "账号已登录", Toast.LENGTH_SHORT).show();
@@ -391,7 +412,6 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        // 启动登录任务
         ongoingLoginTasks.incrementAndGet();
         updateScanButtonState(false, "新账号登录中...", "#9E9E9E");
 
@@ -402,7 +422,6 @@ public class MainActivity extends AppCompatActivity {
 
                 if (token != null) {
                     sessionManager.addSession(account.getUsername(), token);
-
                     runOnUiThread(() -> {
                         Toast.makeText(this,
                                 account.getUsername() + " 登录成功，可快速签到",
@@ -419,18 +438,13 @@ public class MainActivity extends AppCompatActivity {
                         "登录异常: " + e.getMessage(),
                         Toast.LENGTH_SHORT).show());
             } finally {
-                // 任务完成
                 ongoingLoginTasks.decrementAndGet();
                 runOnUiThread(this::updateButtonState);
             }
         }).start();
     }
 
-    /**
-     * 刷新单个账号登录状态
-     */
     private void refreshSingleAccount(Account account, int position) {
-        // 启动登录任务
         ongoingLoginTasks.incrementAndGet();
         updateScanButtonState(false, "重新登录中...", "#9E9E9E");
 
@@ -441,7 +455,6 @@ public class MainActivity extends AppCompatActivity {
 
                 if (token != null) {
                     sessionManager.addSession(account.getUsername(), token);
-
                     runOnUiThread(() -> {
                         Toast.makeText(this,
                                 account.getUsername() + " 重新登录成功",
@@ -458,38 +471,50 @@ public class MainActivity extends AppCompatActivity {
                         "重新登录异常: " + e.getMessage(),
                         Toast.LENGTH_SHORT).show());
             } finally {
-                // 任务完成
                 ongoingLoginTasks.decrementAndGet();
                 runOnUiThread(this::updateButtonState);
             }
         }).start();
     }
 
-    /**
-     * 更新按钮状态（根据当前任务状态）
-     */
     private void updateButtonState() {
         runOnUiThread(() -> {
+            boolean anySignEnabled = false;
+            for (Account account : accountList) {
+                if (account.isSignEnabled()) {
+                    anySignEnabled = true;
+                    break;
+                }
+            }
+
+            if (!anySignEnabled) {
+                updateScanButtonState(false, "无签到账号", "#9E9E9E");
+                return;
+            }
+
             if (ongoingLoginTasks.get() > 0) {
-                // 有登录任务进行中
                 updateScanButtonState(false, "账号登录中...", "#9E9E9E");
             } else if (isSignInProgress) {
-                // 签到进行中
                 updateScanButtonState(false, "签到进行中...", "#FF9800");
-            } else if (accountList.isEmpty()) {
-                // 没有账号
-                updateScanButtonState(true, "添加账号后开始扫码", "#4CAF50");
             } else {
-                // 无任务，根据登录状态更新
                 Map<String, String> validTokens = sessionManager.getAllValidTokens();
-                int readyCount = validTokens.size();
-                int totalCount = accountList.size();
+                int readyCount = 0;
+                int totalSignEnabled = 0;
+                for (Account account : accountList) {
+                    if (account.isSignEnabled()) {
+                        totalSignEnabled++;
+                        if (validTokens.containsKey(account.getUsername())) {
+                            readyCount++;
+                        }
+                    }
+                }
 
                 if (readyCount > 0) {
-                    @SuppressLint("DefaultLocale") String buttonText = String.format("开始扫码签到 (%d/%d就绪)", readyCount, totalCount);
+                    @SuppressLint("DefaultLocale") String buttonText = String.format("开始扫码签到 (%d/%d就绪)", readyCount, totalSignEnabled);
                     updateScanButtonState(true, buttonText, "#4CAF50");
                 } else {
-                    updateScanButtonState(true, "开始扫码签到（普通模式）", "#2196F3");
+                    @SuppressLint("DefaultLocale") String buttonText = String.format("开始扫码签到（0/%d就绪）", totalSignEnabled);
+                    updateScanButtonState(true, buttonText, "#2196F3");
                 }
             }
         });
@@ -498,8 +523,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-
-        // 应用从后台恢复时，更新按钮状态
         updateButtonState();
     }
 }

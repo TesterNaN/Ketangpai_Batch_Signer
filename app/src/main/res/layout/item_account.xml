@@ -2,48 +2,66 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="horizontal"
+    android:orientation="vertical"
     android:padding="12dp"
     android:background="?android:attr/selectableItemBackground"
     android:layout_marginBottom="8dp">
 
-    <!-- 左侧：账号信息和状态区域 -->
+    <!-- 第一行：用户名 + 删除按钮 -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical">
-        
-        <!-- 用户名 -->
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
         <TextView
             android:id="@+id/tv_username"
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
             android:text="账号: user@example.com"
             android:textSize="16sp"
             android:textStyle="bold"
             android:maxLines="1"
             android:ellipsize="end"/>
-        
-        <!-- 合并状态显示：登录状态 + 签到状态 -->
-        <TextView
-            android:id="@+id/tv_combined_status"
-            android:layout_width="match_parent"
+
+        <Button
+            android:id="@+id/btn_delete"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="登录: 未登录 | 签到: 未开始"
-            android:textSize="13sp"
-            android:layout_marginTop="4dp"/>
+            android:text="删除"
+            android:paddingHorizontal="12dp"
+            android:backgroundTint="#FF5252"
+            android:textColor="#FFFFFF"/>
     </LinearLayout>
 
-    <!-- 右侧：删除按钮 -->
-    <Button
-        android:id="@+id/btn_delete"
-        android:layout_width="wrap_content"
+    <!-- 第二行：参与签到开关 -->
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="删除"
-        android:paddingHorizontal="12dp"
-        android:backgroundTint="#FF5252"
-        android:textColor="#FFFFFF"
-        android:layout_gravity="center_vertical"/>
-    
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="参与签到"
+            android:textSize="14sp"/>
+
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/switch_sign"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- 第三行：合并状态显示（登录状态 + 签到状态） -->
+    <TextView
+        android:id="@+id/tv_combined_status"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="登录: 未登录 | 签到: 未开始"
+        android:textSize="13sp"
+        android:layout_marginTop="4dp"/>
 </LinearLayout>

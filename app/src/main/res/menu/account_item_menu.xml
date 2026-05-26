@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_edit_remark"
+        android:title="编辑备注" />
+    <item
+        android:id="@+id/action_view_details"
+        android:title="账号详情" />
+    <item
+        android:id="@+id/action_refresh"
+        android:title="重新登录" />
+</menu>
